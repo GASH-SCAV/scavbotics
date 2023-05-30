@@ -16,13 +16,12 @@ Next, use the Board manager to install the ESP8266 package.
 ## Board setup
 
 When you've restarted, select Adafruit HUZZAH ESP8266 from the Tools->Board dropdown
-
-80 MHz as the CPU frequency
-115200 baud upload speed
-**BE SURE TO SET SERIAL PORT** for programmer
+- 80 MHz as the CPU frequency
+- 115200 baud upload speed
+- **BE SURE TO SET SERIAL PORT** for programmer
 
 
 ## Simple tests
 
-arduino/Test/blinkTest: blink the LED every 1s
-arduino/Test/wifiTest: connect to wifi
+- `arduino/Test/blinkTest`: blink the LED every 1s
+- `arduino/Test/wifiTest`: connect to wifi
