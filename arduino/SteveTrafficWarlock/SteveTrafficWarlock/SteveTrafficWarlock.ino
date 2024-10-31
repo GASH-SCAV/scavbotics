@@ -20,7 +20,7 @@
 #define NEOPIXEL_PIN 5
 #define POWER_PIN    10
 
-#define NUM_PIXELS 30
+#define NUM_PIXELS 36
 #endif  // USE_NEOPIXELS
 
 
@@ -148,6 +148,14 @@ void rainbow(uint8_t wait) {
     delay(wait);
   }
 }
+
+void set_all_red() {
+  for (int i = 0; i < strip.numPixels(); ++i) {
+    strip.setPixelColor(i, strip.Color(255, 0, 0));
+  }
+  digitalWrite(POWER_PIN, HIGH);
+  strip.show();
+}
 #endif  // USE_NEOPIXELS
 
 void do_battery_update() {
@@ -174,6 +182,9 @@ void do_battery_update() {
 void loop() {
   do_battery_update();
 #if USE_NEOPIXELS
-  rainbow(20);
+  //set_all_red();
+  //rainbow(20);
+  set_all_red();
+  delay(1000);
 #endif  // USE_NEOPIXELS
 }
