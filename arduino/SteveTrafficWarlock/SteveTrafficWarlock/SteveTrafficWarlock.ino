@@ -1,11 +1,12 @@
+#include <Adafruit_NeoPixel.h>
+
 /*
- * SteveTrafficWarlock.ico
- * 
- * Firmware for light-up "traffic light staff" prop for Steve Clark: Traffic Warlock
- */
+   SteveTrafficWarlock.ico
+
+   Firmware for light-up "traffic light staff" prop for Steve Clark: Traffic Warlock
+*/
 
 #define USE_TFT_DISPLAY 1
-#define USE_NEOPIXELS 1
 
 #include "Adafruit_LC709203F.h"
 
@@ -14,14 +15,11 @@
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #endif // USE_TFT_DISPLAY
 
-#if USE_NEOPIXELS
 #include <Adafruit_NeoPixel.h>
 
 #define NEOPIXEL_PIN 5
 #define POWER_PIN    10
 
-#define NUM_PIXELS 36
-#endif  // USE_NEOPIXELS
 
 
 
@@ -32,17 +30,45 @@ Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
 Adafruit_LC709203F lc;
 
-#if USE_NEOPIXELS
 // create a neopixel strip
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
-#endif  // USE_NEOPIXELS
+static const int n_rings = 12;
+static const int ring_led_starts[] = {0, 17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 107 };
+static const int ring_led_ends[] = {17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 107, 116 };
+static const int num_pixels_total = 32;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_pixels_total, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
+void blank_rings(uint32_t* color_array) {
+  for (int i = 0; i < num_pixels_total; ++i) {
+    color_array[i] = 0;
+  }
+}
+
+void set_ring(uint32_t* color_array, int ring_index, uint8_t r, uint8_t g, uint8_t b) {
+  if (ring_index < 0 || ring_index >= n_rings) {
+    return;
+  }
+  int ring_start = ring_led_starts[ring_index];
+  int ring_end = ring_led_ends[ring_index];
+  for (int i = ring_start; i < ring_end; ++i) {
+    color_array[i] = strip.Color(r, g, b);
+  }
+}
+
+void show_rings(uint32_t* color_array) {
+  for (int i = 0; i < num_pixels_total; ++i) {
+    strip.setPixelColor(i, color_array[i]);
+  }
+  digitalWrite(POWER_PIN, HIGH);
+  strip.show();
+}
+
 
 #if USE_TFT_DISPLAY
 void display_battery(float voltage, float charge, float temp) {
   tft.fillScreen(ST77XX_BLACK);
 
   char buf[64];
-  snprintf(buf, sizeof(buf), "%1.2fV\n%2.1f%%", voltage, charge, temp); 
+  snprintf(buf, sizeof(buf), "%1.2fV\n%2.1f%%", voltage, charge, temp);
   tft.setTextSize(4);
   tft.setCursor(0, 0);
   tft.print(buf);
@@ -98,14 +124,13 @@ void setup() {
   tft.init(135, 240); // Init ST7789 240x135
   tft.setRotation(3);
   tft.fillScreen(ST77XX_BLACK);
-  
+
   tft.setTextColor(ST77XX_WHITE);
   tft.setTextWrap(false);
 #endif  // USE_TFT_DISPLAY
 
 
   // Neo-pixel setup
-#if USE_NEOPIXELS
   // Set power pin to output
   pinMode(POWER_PIN, OUTPUT);
   // Disable the pin, we're not currently writing to the neopixels.
@@ -113,50 +138,8 @@ void setup() {
 
   // This initializes the NeoPixel library.
   strip.begin();
-#endif  // USE_NEOPIXELS
 }
 
-#if USE_NEOPIXELS
-uint32_t Wheel(byte WheelPos) {
-  // Input a value 0 to 255 to get a color value.
-  // The colours are a transition r - g - b - back to r.
-  WheelPos = 255 - WheelPos;
-  if(WheelPos < 85) {
-    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  }
-  if(WheelPos < 170) {
-    WheelPos -= 85;
-    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-  WheelPos -= 170;
-  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-}
-
-void rainbow(uint8_t wait) {
-  Serial.println("Rainbow");
-  
-  uint16_t i, j;
-
-  for(j=0; j<256; j++) {
-    for(i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel((i+j) & 255));
-    }
-    // turn on the Prop-Maker FeatherWing's power pin
-    digitalWrite(POWER_PIN, HIGH);
-    // write the pixel values
-    strip.show();
-    delay(wait);
-  }
-}
-
-void set_all_red() {
-  for (int i = 0; i < strip.numPixels(); ++i) {
-    strip.setPixelColor(i, strip.Color(255, 0, 0));
-  }
-  digitalWrite(POWER_PIN, HIGH);
-  strip.show();
-}
-#endif  // USE_NEOPIXELS
 
 void do_battery_update() {
   static unsigned long last_time = 0;
@@ -178,13 +161,28 @@ void do_battery_update() {
   }
 }
 
+void set_all_red() {
+  for (int i = 0; i < strip.numPixels(); ++i) {
+    strip.setPixelColor(i, strip.Color(255, 0, 0));
+  }
+  //digitalWrite(POWER_PIN, HIGH);
+  strip.show();
+}
+
+uint32_t color_array[num_pixels_total];
 
 void loop() {
   do_battery_update();
-#if USE_NEOPIXELS
-  //set_all_red();
-  //rainbow(20);
-  set_all_red();
-  delay(1000);
-#endif  // USE_NEOPIXELS
+
+  for (int i = 0; i < n_rings; ++i) {
+    Serial.print("Ring: ");
+    Serial.println(i);
+    blank_rings(color_array);
+    set_ring(color_array, i, 255, 0, 0);
+    //show_rings(color_array);
+    Serial.println("set_all_red");
+    set_all_red();
+    Serial.println("done");
+    delay(1000);
+  }
 }
