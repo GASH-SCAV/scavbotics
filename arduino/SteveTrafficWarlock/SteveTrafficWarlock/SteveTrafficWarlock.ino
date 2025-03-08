@@ -54,6 +54,18 @@ void set_ring(uint32_t* color_array, int ring_index, uint8_t r, uint8_t g, uint8
   }
 }
 
+void set_ring_red(uint32_t* color_array, int ring_index) {
+  set_ring(color_array, ring_index, 255, 0, 0);
+}
+
+void set_ring_yellow(uint32_t* color_array, int ring_index) {
+  set_ring(color_array, ring_index, 255, 200, 0);
+}
+
+void set_ring_green(uint32_t* color_array, int ring_index) {
+  set_ring(color_array, ring_index, 0, 255, 0);
+}
+
 void show_rings(uint32_t* color_array) {
   for (int i = 0; i < num_pixels_total; ++i) {
     strip.setPixelColor(i, color_array[i]);
@@ -171,49 +183,81 @@ void set_all_red() {
 
 uint32_t color_array[num_pixels_total];
 
+const int top_rings[] = {2, 3, 8, 9};
+const int middle_rings[] = {1, 4, 7, 10};
+const int bottom_rings[] = {0, 5, 6, 11};
+
+
+/******************************
+ * State functions begin here *
+ ******************************/
+
+using StateFn = void(int*, void**);
+
+void red_even_green_odd(int* duration, void** next_state);
+void red_even_yellow_odd(int* duration, void** next_state);
+void green_even_red_odd(int* duration, void** next_state);
+void yellow_even_red_odd(int* duration, void** next_state);
+
+void red_even_green_odd(int* duration, void** next_state) {
+  Serial.println("Red evens, Green odd");
+  blank_rings(color_array);
+  set_ring_red(color_array, top_rings[0]);
+  set_ring_green(color_array, bottom_rings[1]);
+  set_ring_red(color_array, top_rings[2]);
+  set_ring_green(color_array, bottom_rings[3]);
+  *duration=4000;
+  *next_state = (void*)red_even_yellow_odd;
+}
+
+void red_even_yellow_odd(int* duration, void** next_state) {
+  Serial.println("Red evens, Yellow odd");
+  blank_rings(color_array);
+  set_ring_red(color_array, top_rings[0]);
+  set_ring_yellow(color_array, middle_rings[1]);
+  set_ring_red(color_array, top_rings[2]);
+  set_ring_yellow(color_array, middle_rings[3]);
+  *duration=2000;
+  *next_state = (void*)green_even_red_odd;
+}
+
+void green_even_red_odd(int* duration, void** next_state) {
+  Serial.println("Green evens, Red odd");
+  blank_rings(color_array);
+  set_ring_green(color_array, bottom_rings[0]);
+  set_ring_red(color_array, top_rings[1]);
+  set_ring_green(color_array, bottom_rings[2]);
+  set_ring_red(color_array, top_rings[3]);
+  *duration=4000;
+  *next_state = (void*)yellow_even_red_odd;
+}
+
+void yellow_even_red_odd(int* duration, void** next_state) {
+  Serial.println("Yellow evens, Red odd");
+  blank_rings(color_array);
+  set_ring_yellow(color_array, middle_rings[0]);
+  set_ring_red(color_array, top_rings[1]);
+  set_ring_yellow(color_array, middle_rings[2]);
+  set_ring_red(color_array, top_rings[3]);
+  *duration=2000;
+  *next_state = (void*)red_even_green_odd;
+}
+
+
+void start_state(int* duration, void** next_state) {
+  Serial.println("Start state");
+  *duration = 0;
+  *next_state = (void*)red_even_green_odd;
+}
+
 unsigned long last_led_time = 0;
-int state = 0;
-int next_time = 0;
+int state_duration = 0;
+StateFn* state = &start_state;
 void update_leds() {
   unsigned long this_time = millis();
-  if (last_led_time == 0 || this_time - last_led_time > next_time || this_time < last_led_time) {
+  if (last_led_time == 0 || this_time - last_led_time > state_duration || this_time < last_led_time) {
     last_led_time = this_time;
-    blank_rings(color_array);
-    switch (state) {
-      case 0:
-      {
-        Serial.println("Red");
-        state = 1;
-        next_time = 4000;
-        set_ring(color_array, 2, 255, 0, 0);
-        set_ring(color_array, 5, 255, 0, 0);
-        set_ring(color_array, 8, 255, 0, 0);
-        set_ring(color_array, 11, 255, 0, 0);
-      }
-      break;
-      case 1:
-      {
-        Serial.println("Yellow");
-        state = 2;
-        next_time = 2000;
-        set_ring(color_array, 1, 255, 200, 0);
-        set_ring(color_array, 4, 255, 200, 0);
-        set_ring(color_array, 7, 255, 200, 0);
-        set_ring(color_array, 10, 255, 200, 0);
-      }
-      break;
-      case 2:
-      {
-        Serial.println("Green");
-        state = 0;
-        next_time = 4000;
-        set_ring(color_array, 0, 0, 255, 0);
-        set_ring(color_array, 3, 0, 255, 0);
-        set_ring(color_array, 6, 0, 255, 0);
-        set_ring(color_array, 9, 0, 255, 0);
-      }
-      break;
-    }
+    state(&state_duration, (void**)&state);
     show_rings(color_array);
   }
 }
