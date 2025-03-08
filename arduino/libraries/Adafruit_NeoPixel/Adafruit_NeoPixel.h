@@ -87,7 +87,7 @@
 // 0bRRRRGGBB for RGB
 
 // RGB NeoPixel permutations; white and red offsets are always same
-// Offset:         W        R        G        B
+// Offset:        W          R          G          B
 #define NEO_RGB ((0 << 6) | (0 << 4) | (1 << 2) | (2)) ///< Transmit as R,G,B
 #define NEO_RBG ((0 << 6) | (0 << 4) | (2 << 2) | (1)) ///< Transmit as R,B,G
 #define NEO_GRB ((1 << 6) | (1 << 4) | (0 << 2) | (2)) ///< Transmit as G,R,B
@@ -207,6 +207,15 @@ static const uint8_t PROGMEM _NeoPixelGammaTable[256] = {
     184, 186, 188, 191, 193, 195, 197, 199, 202, 204, 206, 209, 211, 213, 215,
     218, 220, 223, 225, 227, 230, 232, 235, 237, 240, 242, 245, 247, 250, 252,
     255};
+
+/* Declare external methods required by the Adafruit_NeoPixel implementation
+    for specific hardware/library versions
+*/
+#if defined(ESP32)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+extern "C" void espInit();
+#endif
+#endif
 
 /*!
     @brief  Class that stores state and functions for interacting with
@@ -371,6 +380,8 @@ public:
                uint8_t saturation = 255, uint8_t brightness = 255,
                bool gammify = true);
 
+  static neoPixelType str2order(const char *v);
+
 private:
 #if defined(ARDUINO_ARCH_RP2040)
   void  rp2040Init(uint8_t pin, bool is800KHz);
@@ -396,7 +407,7 @@ protected:
   volatile uint8_t *port; ///< Output PORT register
   uint8_t pinMask;        ///< Output PORT bitmask
 #endif
-#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ARDUINO_CORE_STM32)
+#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ARDUINO_CORE_STM32) || defined(ARDUINO_ARCH_CH32)
   GPIO_TypeDef *gpioPort; ///< Output GPIO PORT
   uint32_t gpioPin;       ///< Output GPIO PIN
 #endif
