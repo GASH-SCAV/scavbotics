@@ -68,7 +68,7 @@ void display_battery(float voltage, float charge, float temp) {
   tft.fillScreen(ST77XX_BLACK);
 
   char buf[64];
-  snprintf(buf, sizeof(buf), "%1.2fV\n%2.1f%%", voltage, charge, temp);
+  snprintf(buf, sizeof(buf), "%1.2fV\n%2.1f%%", voltage, charge);
   tft.setTextSize(4);
   tft.setCursor(0, 0);
   tft.print(buf);
