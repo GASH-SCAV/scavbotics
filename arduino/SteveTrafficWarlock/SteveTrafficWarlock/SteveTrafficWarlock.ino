@@ -258,10 +258,55 @@ void start_regular_cycle(int* duration, void** next_state) {
   *next_state = (void*)red_even_green_odd;
 }
 
+/// Blink cycle
+
+int blink_repeat_count = 0;
+
+void blink_red_off(int* duration, void** next_state);
+void blink_red_on(int* duration, void** next_state);
+
+void blink_red_off(int* duration, void** next_state) {
+  Serial.println("Blink red off");
+  blank_rings(color_array);
+  *duration = 1500;
+  *next_state = (void*)blink_red_on;
+}
+void blink_red_on(int* duration, void** next_state) {
+  Serial.println("Blink red on");
+  blank_rings(color_array);
+  set_ring_red(color_array, top_rings[0]);
+  set_ring_red(color_array, top_rings[1]);
+  set_ring_red(color_array, top_rings[2]);
+  set_ring_red(color_array, top_rings[3]);
+  *duration = 1500;
+  blink_repeat_count--;
+  if (blink_repeat_count) {
+    *next_state = (void*)blink_red_off;
+  } else {
+    *next_state = (void*)decider_state;
+  }
+}
+
+void start_blinks_red(int* duration, void** next_state) {
+  Serial.println("Start red blinks");
+  blink_repeat_count = 10;
+  *duration = 0;
+  *next_state = (void*)blink_red_off;
+}
+
+/// Control states
+
+int toggle = 0;
 void decider_state(int* duration, void** next_state) {
   Serial.println("Decider state");
   *duration = 0;
-  *next_state = (void*)start_regular_cycle;
+  if (toggle == 0) {
+    toggle = 1;
+    *next_state = (void*)start_blinks_red;
+  } else {
+    toggle = 0;
+    *next_state = (void*)start_regular_cycle;
+  }
 }
 
 void start_state(int* duration, void** next_state) {
