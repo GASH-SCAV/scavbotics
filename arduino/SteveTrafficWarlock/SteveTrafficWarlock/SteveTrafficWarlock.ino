@@ -194,6 +194,8 @@ const int bottom_rings[] = {0, 5, 6, 11};
 
 using StateFn = void(int*, void**);
 
+void decider_state(int* duration, void** next_state);
+
 void red_even_green_odd(int* duration, void** next_state);
 void red_even_yellow_odd(int* duration, void** next_state);
 void green_even_red_odd(int* duration, void** next_state);
@@ -232,6 +234,7 @@ void green_even_red_odd(int* duration, void** next_state) {
   *next_state = (void*)yellow_even_red_odd;
 }
 
+int regular_cycle_repeat_count = 0;
 void yellow_even_red_odd(int* duration, void** next_state) {
   Serial.println("Yellow evens, Red odd");
   blank_rings(color_array);
@@ -240,14 +243,31 @@ void yellow_even_red_odd(int* duration, void** next_state) {
   set_ring_yellow(color_array, middle_rings[2]);
   set_ring_red(color_array, top_rings[3]);
   *duration=2000;
+  regular_cycle_repeat_count--;
+  if (regular_cycle_repeat_count) {
+    *next_state = (void*)red_even_green_odd;
+  } else {
+    *next_state = (void*)decider_state;
+  }
+}
+
+void start_regular_cycle(int* duration, void** next_state) {
+  Serial.println("Start regular cycle");
+  regular_cycle_repeat_count = 10;
+  *duration = 0;
   *next_state = (void*)red_even_green_odd;
 }
 
+void decider_state(int* duration, void** next_state) {
+  Serial.println("Decider state");
+  *duration = 0;
+  *next_state = (void*)start_regular_cycle;
+}
 
 void start_state(int* duration, void** next_state) {
   Serial.println("Start state");
   *duration = 0;
-  *next_state = (void*)red_even_green_odd;
+  *next_state = (void*)decider_state;
 }
 
 unsigned long last_led_time = 0;
