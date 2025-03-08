@@ -34,7 +34,7 @@ Adafruit_LC709203F lc;
 static const int n_rings = 12;
 static const int ring_led_starts[] = {0, 17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 107 };
 static const int ring_led_ends[] = {17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 107, 116 };
-static const int num_pixels_total = 32;
+static const int num_pixels_total = 35;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_pixels_total, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 void blank_rings(uint32_t* color_array) {
@@ -171,18 +171,46 @@ void set_all_red() {
 
 uint32_t color_array[num_pixels_total];
 
+unsigned long last_led_time = 0;
+int state = 0;
+int next_time = 0;
+void update_leds() {
+  unsigned long this_time = millis();
+  if (last_led_time == 0 || this_time - last_led_time > next_time || this_time < last_led_time) {
+    last_led_time = this_time;
+    blank_rings(color_array);
+    switch (state) {
+      case 0:
+      {
+        Serial.println("Red");
+        state = 1;
+        next_time = 4000;
+        set_ring(color_array, 2, 255, 0, 0);
+      }
+      break;
+      case 1:
+      {
+        Serial.println("Yellow");
+        state = 2;
+        next_time = 2000;
+        set_ring(color_array, 1, 255, 200, 0);
+      }
+      break;
+      case 2:
+      {
+        Serial.println("Green");
+        state = 0;
+        next_time = 4000;
+        set_ring(color_array, 0, 0, 255, 0);
+      }
+      break;
+    }
+    show_rings(color_array);
+  }
+}
+    
+
 void loop() {
   do_battery_update();
-
-  for (int i = 0; i < n_rings; ++i) {
-    Serial.print("Ring: ");
-    Serial.println(i);
-    blank_rings(color_array);
-    set_ring(color_array, i, 255, 0, 0);
-    //show_rings(color_array);
-    Serial.println("set_all_red");
-    set_all_red();
-    Serial.println("done");
-    delay(1000);
-  }
+  update_leds();
 }
