@@ -34,7 +34,7 @@ Adafruit_LC709203F lc;
 static const int n_rings = 12;
 static const int ring_led_starts[] = {0, 17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 107 };
 static const int ring_led_ends[] = {17, 26, 35, 44, 53, 62, 71, 80, 89, 98, 107, 116 };
-static const int num_pixels_total = 35;
+static const int num_pixels_total = 116;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_pixels_total, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 void blank_rings(uint32_t* color_array) {
@@ -186,6 +186,9 @@ void update_leds() {
         state = 1;
         next_time = 4000;
         set_ring(color_array, 2, 255, 0, 0);
+        set_ring(color_array, 5, 255, 0, 0);
+        set_ring(color_array, 8, 255, 0, 0);
+        set_ring(color_array, 11, 255, 0, 0);
       }
       break;
       case 1:
@@ -194,6 +197,9 @@ void update_leds() {
         state = 2;
         next_time = 2000;
         set_ring(color_array, 1, 255, 200, 0);
+        set_ring(color_array, 4, 255, 200, 0);
+        set_ring(color_array, 7, 255, 200, 0);
+        set_ring(color_array, 10, 255, 200, 0);
       }
       break;
       case 2:
@@ -202,6 +208,9 @@ void update_leds() {
         state = 0;
         next_time = 4000;
         set_ring(color_array, 0, 0, 255, 0);
+        set_ring(color_array, 3, 0, 255, 0);
+        set_ring(color_array, 6, 0, 255, 0);
+        set_ring(color_array, 9, 0, 255, 0);
       }
       break;
     }
