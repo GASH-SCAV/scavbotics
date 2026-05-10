@@ -65,6 +65,9 @@ void show_breathe(int time_in_breathe, int breathe_duration) {
     fraction_in_duration = 1.0 - fraction_in_duration;
   }
   float brightness = 2.0 * fraction_in_duration;
+  if (brightness < 0.1) {
+    brightness = 0.1;
+  }
   uint8_t brightness_8 = brightness * max_brightness;
   for (int i = 0; i < num_pixels; ++i) {
     color_array[i] = strip.Color(0, 0, brightness_8);
@@ -267,20 +270,30 @@ void init_breathe_state(int breathe_duration, int frame_duration) {
 }
 void state_breathe(int* duration, void** next_state) {
   *duration = _frame_duration;
-
+  // Serial.println("Breathe");
+  show_breathe(_time_in_breathe, _breathe_duration);
+  _time_in_breathe += _frame_duration;
+  if (_time_in_breathe >= _breathe_duration) {
+    _time_in_breathe = 0;
+  }
+  *next_state = (void*)decider_state;
 }
 
 void decider_state(int* duration, void** next_state) {
   *duration = 0;
-  Serial.println("Decider state");
-  init_poland_party(1000 * 10);
-  *next_state = (void*)state_poland_party;
+  // Serial.println("Decider state");
+  // init_poland_party(1000 * 10);
+  // *next_state = (void*)state_poland_party;
+  *next_state = (void*)state_breathe;
 }
 
 void start_state(int* duration, void** next_state) {
   Serial.println("Start state");
   *duration = 0;
   *next_state = (void*)decider_state;
+
+  init_breathe_state(6000, 50);
+  
 }
 
 unsigned long last_led_time = 0;
