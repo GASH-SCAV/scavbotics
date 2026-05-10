@@ -1,5 +1,6 @@
 
 #define USE_TFT_DISPLAY 1
+#define USE_PROX_SENSOR 0
 
 
 #if USE_TFT_DISPLAY
@@ -14,11 +15,12 @@
 #define POWER_PIN    10
 
 
+#if USE_PROX_SENSOR
 // Proximity sensor
 #include <Adafruit_VCNL4030.h>
 
 Adafruit_VCNL4030 vcnl;
-
+#endif // USE_PROX_SENSOR
 
 #if USE_TFT_DISPLAY
 // Use dedicated hardware SPI pins for display
@@ -44,12 +46,12 @@ void setup() {
   Serial.begin(115200);
   Serial.println("GASHapon machine starting up...");
 
-  if (!vcnl.begin()) {
-    Serial.println(F("Could not find a valid VCNL4030 sensor, check wiring!"));
-    while (1) {
-      delay(10);
-    }
-  }
+  // if (!vcnl.begin()) {
+  //   Serial.println(F("Could not find a valid VCNL4030 sensor, check wiring!"));
+  //   while (1) {
+  //     delay(10);
+  //   }
+  // }
 
   Serial.println(F("VCNL4030 Found!"));
   Serial.println();
@@ -79,7 +81,7 @@ void setup() {
 
   // initialize TFT
   tft.init(135, 240); // Init ST7789 240x135
-  tft.setRotation(3);
+  tft.setRotation(1);
   tft.fillScreen(ST77XX_BLACK);
 
   tft.setTextColor(ST77XX_WHITE);
@@ -98,7 +100,11 @@ void loop() {
   // display_test(i);
 #endif // USE_TFT_DISPLAY
 
+#if USE_PROX_SENSOR
   uint16_t prox = vcnl.readProximity();
+#else
+  uint16_t prox = 50;
+#endif
   Serial.println(prox);
   if (prox > 1200) {
     Serial.print("Detected!");
