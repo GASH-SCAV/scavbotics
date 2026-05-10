@@ -15,6 +15,8 @@
 #define NEOPIXEL_PIN 5
 #define POWER_PIN    10
 
+static const uint8_t max_brightness = 50;
+
 
 // create a neopixel strip
 static const int num_pixels_total = 133;
@@ -22,6 +24,11 @@ static const int start_pixel = 13;
 static const int num_pixels = num_pixels_total - start_pixel;
 uint32_t color_array[num_pixels];
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_pixels_total, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
+
+// 
+// PATTERN FUNCTIONS 
+//
 
 void blank_pattern(uint32_t* color_array) {
   for (int i = 0; i < num_pixels; ++i) {
@@ -32,7 +39,7 @@ void blank_pattern(uint32_t* color_array) {
 void test_ruler(uint32_t* color_array) {
   for (int i = 0; i < num_pixels; ++i) {
     if (i % 10 == 0) {
-      color_array[i] = strip.Color(255, 0, 0);
+      color_array[i] = strip.Color(max_brightness, 0, 0);
     }
     else {
       color_array[i] = 0;
@@ -40,9 +47,9 @@ void test_ruler(uint32_t* color_array) {
   }
 }
 
-void show_poland(bool polarity, int width) {
+void show_poland(bool polarity, int width, int offset = 0) {
   int stripe_counter = 0;
-  bool do_red = true;
+  bool do_red = polarity;
   for (int i = 0; i < num_pixels; ++i) {
     if (stripe_counter > width) {
       do_red = !do_red;
@@ -51,9 +58,9 @@ void show_poland(bool polarity, int width) {
     stripe_counter++;
 
     if (do_red) {
-      color_array[i] = strip.Color(255, 0, 0);
+      color_array[i] = strip.Color(max_brightness, 0, 0);
     } else {
-      color_array[i] = strip.Color(255, 255, 255);
+      color_array[i] = strip.Color(max_brightness, max_brightness, max_brightness);
     }
   }
 }
@@ -155,34 +162,118 @@ void setup() {
 
   // This initializes the NeoPixel library.
   strip.begin();
+
+  blank_pattern(color_array);
 }
+
+
+
+
+
+/******************************
+ * State functions begin here *
+ ******************************/
+
+using StateFn = void(int*, void**);
+
+void decider_state(int* duration, void** next_state);
+void start_state(int* duration, void** next_state);
+
+// POLAND_FLASH
+int _pattern_width = 0;
+int _blink_duration = 0;
+int _n_blinks = 0;
+bool _poland_polarity = true;
+void init_poland_flash(int pattern_width, int blink_duration, int n_blinks) {
+  _pattern_width = pattern_width;
+  _blink_duration = blink_duration;
+  _n_blinks = n_blinks;
+}
+void state_poland_flash(int* duration, void** next_state) {
+  Serial.println("Poland flash!");
+  *duration = _blink_duration;
+  show_poland(_poland_polarity, _pattern_width);
+  _poland_polarity = !_poland_polarity;
+  _n_blinks--;
+  if (_n_blinks <= 0) {
+    *next_state = (void*)decider_state;
+  } else {
+    *next_state = (void*)state_poland_flash;
+  }
+}
+
+int _frame_duration = 0;
+int _n_chases = 0;
+int _offset = 0;
+void init_poland_chase(int pattern_width, int frame_duration, int n_chases) {
+  _pattern_width = pattern_width;
+  _frame_duration = frame_duration;
+  _n_chases = n_chases;
+  _offset = 0;
+}
+void state_poland_chase(int* duration, void** next_state) {
+  Serial.println("Poland chase!");
+  *duration = _frame_duration;
+  show_poland(true, _pattern_width, _offset);
+  _offset++;
+  _n_chases--;
+  if (_n_chases <= 0) {
+    *next_state = (void*)decider_state;
+  } else {
+    *next_state = (void*)state_poland_chase;
+  }
+}
+
+
+int toggle = 0;
+void decider_state(int* duration, void** next_state) {
+  Serial.println("Decider state");
+  *duration = 0;
+  if (toggle == 0) {
+    toggle = 1;
+    init_poland_flash(7, 750, 5);
+    *next_state = (void*)state_poland_flash;
+  } else {
+    toggle = 0;
+    init_poland_chase(7, 100, 50);
+    *next_state = (void*)state_poland_chase;
+  }
+}
+
+void start_state(int* duration, void** next_state) {
+  Serial.println("Start state");
+  *duration = 0;
+  *next_state = (void*)decider_state;
+}
+
+unsigned long last_led_time = 0;
+int state_duration = 0;
+StateFn* state = &start_state;
+
 
 int i = 0;
 void loop() {
-  // put your main code here, to run repeatedly:
-  // Serial.println(i++);
-  // delay(100);
-#if USE_TFT_DISPLAY
-  // display_test(i);
-#endif // USE_TFT_DISPLAY
-
-#if USE_PROX_SENSOR
-  uint16_t prox = vcnl.readProximity();
-#else
-  uint16_t prox = 50;
-#endif
-  // Serial.println(prox);
-  if (prox > 1200) {
-    Serial.print("Detected!");
-    Serial.println(i++);
-    display_test(1);
-    delay(500);
-    display_test(0);
+  
+  unsigned long this_time = millis();
+  if (last_led_time == 0 || this_time - last_led_time > state_duration || this_time < last_led_time) {
+    last_led_time = this_time;
+    state(&state_duration, (void**)&state);
+    show_pattern(color_array);
   }
 
-  // test_ruler(color_array);
-  show_poland(true, 7);
-  show_pattern(color_array);
-  delay(1000);
+// #if USE_PROX_SENSOR
+//   uint16_t prox = vcnl.readProximity();
+// #else
+//   uint16_t prox = 50;
+// #endif
+//   // Serial.println(prox);
+//   if (prox > 1200) {
+//     Serial.print("Detected!");
+//     Serial.println(i++);
+//     display_test(1);
+//     delay(500);
+//     display_test(0);
+//   }
+
 
 }
