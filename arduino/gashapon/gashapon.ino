@@ -48,20 +48,26 @@ void test_ruler(uint32_t* color_array) {
 }
 
 void show_poland(bool polarity, int width, int offset = 0) {
-  int stripe_counter = 0;
-  bool do_red = polarity;
   for (int i = 0; i < num_pixels; ++i) {
-    if (stripe_counter > width) {
-      do_red = !do_red;
-      stripe_counter = 0;
-    }
-    stripe_counter++;
-
-    if (do_red) {
+    int in_pattern = (i + offset) % (width * 2);
+    bool is_red = (in_pattern < width) ^ polarity;
+    if (is_red) {
       color_array[i] = strip.Color(max_brightness, 0, 0);
     } else {
       color_array[i] = strip.Color(max_brightness, max_brightness, max_brightness);
     }
+  }
+}
+
+void show_breathe(int time_in_breathe, int breathe_duration) {
+  float fraction_in_duration = (float) time_in_breathe / (float) breathe_duration;
+  if (fraction_in_duration >= 0.5) {
+    fraction_in_duration = 1.0 - fraction_in_duration;
+  }
+  float brightness = 2.0 * fraction_in_duration;
+  uint8_t brightness_8 = brightness * max_brightness;
+  for (int i = 0; i < num_pixels; ++i) {
+    color_array[i] = strip.Color(0, 0, brightness_8);
   }
 }
 
@@ -225,19 +231,50 @@ void state_poland_chase(int* duration, void** next_state) {
 }
 
 
-int toggle = 0;
-void decider_state(int* duration, void** next_state) {
-  Serial.println("Decider state");
+int _toggle = 0;
+unsigned long _party_duration = 0;
+unsigned long _party_start_time = 0;
+void init_poland_party(unsigned long party_duration) {
+  _toggle = 0;
+  _party_duration = party_duration;
+  _party_start_time = millis();
+}
+void state_poland_party(int* duration, void** next_state) {
+  Serial.println("Poland Party");
   *duration = 0;
-  if (toggle == 0) {
-    toggle = 1;
+  if (millis() - _party_start_time > _party_duration) {
+    *next_state = (void*)decider_state;
+  }
+  if (_toggle == 0) {
+    _toggle = 1;
     init_poland_flash(7, 750, 5);
     *next_state = (void*)state_poland_flash;
   } else {
-    toggle = 0;
+    _toggle = 0;
     init_poland_chase(7, 100, 50);
     *next_state = (void*)state_poland_chase;
   }
+}
+
+unsigned int _breathe_duration = 0;
+unsigned int _time_in_breathe = 0;
+bool _breathe_up = true;
+void init_breathe_state(int breathe_duration, int frame_duration) {
+  _breathe_duration = breathe_duration;
+  _frame_duration = frame_duration;
+  _time_in_breathe = 0;
+  _breathe_up = true;
+}
+void state_breathe(int* duration, void** next_state) {
+  *duration = _frame_duration;
+
+}
+
+void decider_state(int* duration, void** next_state) {
+  *duration = 0;
+  Serial.println("Decider state");
+  init_poland_party(1000 * 10);
+  *next_state = (void*)state_poland_party;
 }
 
 void start_state(int* duration, void** next_state) {
@@ -261,19 +298,7 @@ void loop() {
     show_pattern(color_array);
   }
 
-// #if USE_PROX_SENSOR
-//   uint16_t prox = vcnl.readProximity();
-// #else
-//   uint16_t prox = 50;
-// #endif
-//   // Serial.println(prox);
-//   if (prox > 1200) {
-//     Serial.print("Detected!");
-//     Serial.println(i++);
-//     display_test(1);
-//     delay(500);
-//     display_test(0);
-//   }
+
 
 
 }
