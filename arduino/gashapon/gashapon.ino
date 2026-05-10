@@ -187,6 +187,7 @@ using StateFn = void(int*, void**);
 
 void decider_state(int* duration, void** next_state);
 void start_state(int* duration, void** next_state);
+void state_poland_party(int* duration, void** next_state);
 
 // POLAND_FLASH
 int _pattern_width = 0;
@@ -199,13 +200,12 @@ void init_poland_flash(int pattern_width, int blink_duration, int n_blinks) {
   _n_blinks = n_blinks;
 }
 void state_poland_flash(int* duration, void** next_state) {
-  Serial.println("Poland flash!");
   *duration = _blink_duration;
   show_poland(_poland_polarity, _pattern_width);
   _poland_polarity = !_poland_polarity;
   _n_blinks--;
   if (_n_blinks <= 0) {
-    *next_state = (void*)decider_state;
+    *next_state = (void*)state_poland_party;
   } else {
     *next_state = (void*)state_poland_flash;
   }
@@ -221,13 +221,12 @@ void init_poland_chase(int pattern_width, int frame_duration, int n_chases) {
   _offset = 0;
 }
 void state_poland_chase(int* duration, void** next_state) {
-  Serial.println("Poland chase!");
   *duration = _frame_duration;
   show_poland(true, _pattern_width, _offset);
   _offset++;
   _n_chases--;
   if (_n_chases <= 0) {
-    *next_state = (void*)decider_state;
+    *next_state = (void*)state_poland_party;
   } else {
     *next_state = (void*)state_poland_chase;
   }
@@ -245,8 +244,12 @@ void init_poland_party(unsigned long party_duration) {
 void state_poland_party(int* duration, void** next_state) {
   Serial.println("Poland Party");
   *duration = 0;
-  if (millis() - _party_start_time > _party_duration) {
+  unsigned long party_elapsed = millis() - _party_start_time;
+  Serial.println(party_elapsed);
+  Serial.println(_party_duration);
+  if (party_elapsed > _party_duration) {
     *next_state = (void*)decider_state;
+    return;
   }
   if (_toggle == 0) {
     _toggle = 1;
@@ -279,12 +282,29 @@ void state_breathe(int* duration, void** next_state) {
   *next_state = (void*)decider_state;
 }
 
+int _song_choice = 0;
+int _n_songs = 3;
+int _song_lengths[3] = {16500, 29500, 13000};
 void decider_state(int* duration, void** next_state) {
   *duration = 0;
   // Serial.println("Decider state");
   // init_poland_party(1000 * 10);
   // *next_state = (void*)state_poland_party;
-  *next_state = (void*)state_breathe;
+#if USE_PROX_SENSOR
+  uint16_t prox = vcnl.readProximity();
+#else
+  uint16_t prox = 50;
+#endif
+  if (prox > 1200) {
+    char buf[64];
+    snprintf(buf, sizeof(buf), "Song %d", _song_choice);
+    Serial.println(buf);
+    init_poland_party(_song_lengths[_song_choice]);
+    _song_choice = (_song_choice + 1) % _n_songs;
+    *next_state = (void*)state_poland_party;
+  } else {
+    *next_state = (void*)state_breathe;
+  }
 }
 
 void start_state(int* duration, void** next_state) {
@@ -292,7 +312,7 @@ void start_state(int* duration, void** next_state) {
   *duration = 0;
   *next_state = (void*)decider_state;
 
-  init_breathe_state(6000, 50);
+  init_breathe_state(12000, 50);
   
 }
 
