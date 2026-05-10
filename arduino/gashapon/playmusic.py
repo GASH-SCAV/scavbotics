@@ -15,23 +15,21 @@ def play_music():
         if data == b"":
             continue
         print(data)
-        if data.startswith(b"Detected"):
-            x = random.random()
-            if 0<=x<=.3333:
-                p = vlc.MediaPlayer("file:///Users/afix/Downloads/Scav2026/Short Polka tramblanka.mp3")
-                print("Playing polka")
-                p.play()
-                time.sleep(16.5)
-            elif .3333 < x <=.6666:
-                p = vlc.MediaPlayer("file:///Users/afix/Downloads/Scav2026/Short W moim ogródecku (In my garden) Polish Folk Song [Eng sub, HQ].mp3")
-                print("Playing garder")
-                p.play() 
-                time.sleep(29.5)               
-            else:
-                p = vlc.MediaPlayer("file:///Users/afix/Downloads/Scav2026/Short Hej, sokoły! - Polish Folk Song.mp3")
-                print("Playing Hej")
-                p.play()
-                time.sleep(13)  
+        if data.startswith(b"Song 0"):
+            p = vlc.MediaPlayer("file:///Users/afix/Downloads/Scav2026/Short Polka tramblanka.mp3")
+            print("Playing polka")
+            p.play()
+            time.sleep(16.5)
+        elif data.startswith(b"Song 1"):
+            p = vlc.MediaPlayer("file:///Users/afix/Downloads/Scav2026/Short W moim ogródecku (In my garden) Polish Folk Song [Eng sub, HQ].mp3")
+            print("Playing garder")
+            p.play() 
+            time.sleep(29.5)               
+        elif data.startswith(b"Song 2"):
+            p = vlc.MediaPlayer("file:///Users/afix/Downloads/Scav2026/Short Hej, sokoły! - Polish Folk Song.mp3")
+            print("Playing Hej")
+            p.play()
+            time.sleep(13)  
 
     return
 
