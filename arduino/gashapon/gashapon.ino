@@ -1,6 +1,6 @@
 
 #define USE_TFT_DISPLAY 1
-#define USE_PROX_SENSOR 0
+#define USE_PROX_SENSOR 1
 
 
 #if USE_TFT_DISPLAY
@@ -46,12 +46,12 @@ void setup() {
   Serial.begin(115200);
   Serial.println("GASHapon machine starting up...");
 
-  // if (!vcnl.begin()) {
-  //   Serial.println(F("Could not find a valid VCNL4030 sensor, check wiring!"));
-  //   while (1) {
-  //     delay(10);
-  //   }
-  // }
+  if (!vcnl.begin()) {
+    Serial.println(F("Could not find a valid VCNL4030 sensor, check wiring!"));
+    while (1) {
+      delay(10);
+    }
+  }
 
   Serial.println(F("VCNL4030 Found!"));
   Serial.println();
@@ -105,7 +105,7 @@ void loop() {
 #else
   uint16_t prox = 50;
 #endif
-  Serial.println(prox);
+  // Serial.println(prox);
   if (prox > 1200) {
     Serial.print("Detected!");
     Serial.println(i++);
